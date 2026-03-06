@@ -7,7 +7,7 @@ def testar_camera():
 
     try:
         if not cap.isOpened():
-            print("❌ Erro: Câmera não encontrada.")
+            print("Erro: Câmera não encontrada.")
             return
 
         while True:
@@ -30,13 +30,13 @@ def testar_camera():
     except KeyboardInterrupt:
         print("\n\nParada forçada pelo usuário (Ctrl+C).")
     except Exception as e:
-        print(f"⚠️ Erro inesperado: {e}")
+        print(f"Erro inesperado: {e}")
     finally:
         cap.release()
         cv2.destroyAllWindows()
         # Comando extra para garantir que as janelas sumam no Linux
         cv2.waitKey(1) 
-        print("🔌 Sistema encerrado com segurança.")
+        print("Sistema encerrado com segurança.")
 
 if __name__ == "__main__":
     testar_camera()
