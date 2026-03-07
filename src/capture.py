@@ -34,7 +34,7 @@ def detectar_movimento():
             
             if first_frame is None:
                 first_frame = gray
-                print("📸 Fundo de referência definido.")
+                print("Fundo de referência definido.")
                 continue
 
             # Cálculo de diferença matemática
