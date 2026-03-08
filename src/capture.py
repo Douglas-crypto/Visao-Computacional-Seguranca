@@ -67,7 +67,7 @@ def contador_objetos():
                 # Se no frame passado estava ACIMA e agora está ABAIXO da linha
                 if posicao_anterior < linha_y and movimento_atual_y >= linha_y:
                     total_counts += 1
-                    print(f"✅ Objeto Cruzou! Total: {total_counts}")
+                    print(f"Objeto Cruzou! Total: {total_counts}")
 
             posicao_anterior = movimento_atual_y
 
