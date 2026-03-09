@@ -1,34 +1,36 @@
 import cv2
 import time
 import numpy as np
+from datetime import datetime
 
-def contador_objetos():
-    print("=== Vision IA 2026: Contador de Objetos (Passo 3) ===")
+def salvar_log(tipo):
+    """Função para salvar o evento em um arquivo de texto"""
+    data_hora = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+    with open("relatorio_contagem.txt", "a") as f:
+        f.write(f"[{data_hora}] - Evento: {tipo}\n")
+
+def contador_profissional():
+    print("=== Vision IA 2026: Monitoramento Bidirecional ===")
     
     cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("Erro ao acessar a câmera.")
-        return
+    if not cap.isOpened(): return
 
-    time.sleep(2) # Estabilização
+    time.sleep(2)
     
     first_frame = None
-    total_counts = 0
-    linha_y = 300 # Altura da linha (ajustaremos no primeiro frame)
-    posicao_anterior = None # Guarda o Y do objeto no frame passado
+    entradas = 0
+    saidas = 0
+    linha_y = 300
+    posicao_anterior = None
 
-    # Criar a janela ANTES para estabilidade no Linux
-    cv2.namedWindow('Vision IA - Contador', cv2.WINDOW_AUTOSIZE)
+    cv2.namedWindow('Vision IA - Monitoramento', cv2.WINDOW_AUTOSIZE)
 
     try:
         while True:
             ret, frame = cap.read()
-            if not ret or frame is None:
-                break
+            if not ret or frame is None: break
 
-            # Ajusta a linha para o meio da tela dinamicamente
-            if linha_y == 300:
-                linha_y = frame.shape[0] // 2
+            if linha_y == 300: linha_y = frame.shape[0] // 2
 
             # --- PROCESSAMENTO ---
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -42,56 +44,58 @@ def contador_objetos():
             _, thresh = cv2.threshold(frame_diff, 25, 255, cv2.THRESH_BINARY)
             thresh = cv2.dilate(thresh, None, iterations=2)
 
-            # --- DETECÇÃO ---
             contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
             movimento_atual_y = None
 
             for contour in contours:
-                if cv2.contourArea(contour) < 2000: # Ignora ruídos pequenos
-                    continue
-                
+                if cv2.contourArea(contour) < 3000: continue # Área um pouco maior para evitar erros
                 (x, y, w, h) = cv2.boundingRect(contour)
                 Cx = x + w // 2
                 Cy = y + h // 2
                 
-                # Desenha o objeto e o centroide
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 cv2.circle(frame, (Cx, Cy), 5, (0, 0, 255), -1)
-                
-                # Pegamos o Cy do maior objeto para monitorar o cruzamento
                 movimento_atual_y = Cy
 
-            # --- LÓGICA DE CONTAGEM (O PULO DO GATO) ---
+            # --- LÓGICA BIDIRECIONAL ---
             if movimento_atual_y is not None and posicao_anterior is not None:
-                # Se no frame passado estava ACIMA e agora está ABAIXO da linha
+                # Caso 1: Cruzou de Cima para Baixo (ENTRADA)
                 if posicao_anterior < linha_y and movimento_atual_y >= linha_y:
-                    total_counts += 1
-                    print(f"Objeto Cruzou! Total: {total_counts}")
+                    entradas += 1
+                    salvar_log("ENTRADA")
+                    print(f"📥 Entrada detectada! Total: {entradas}")
+
+                # Caso 2: Cruzou de Baixo para Cima (SAÍDA)
+                elif posicao_anterior > linha_y and movimento_atual_y <= linha_y:
+                    saidas += 1
+                    salvar_log("SAIDA")
+                    print(f"📤 Saída detectada! Total: {saidas}")
 
             posicao_anterior = movimento_atual_y
 
             # --- INTERFACE ---
-            # Linha Amarela
-            cv2.line(frame, (0, linha_y), (frame.shape[1], linha_y), (0, 255, 255), 2)
-            # Contador Gigante
-            cv2.putText(frame, f"CONTADOR: {total_counts}", (20, 60), 
-                        cv2.FONT_HERSHEY_DUPLEX, 1.5, (255, 255, 0), 3)
+            # Linha de Divisão
+            cv2.line(frame, (0, linha_y), (frame.shape[1], linha_y), (255, 255, 0), 2)
             
-            cv2.imshow('Vision IA - Contador', frame)
+            # Painel de Contagem
+            cv2.putText(frame, f"ENTRADAS: {entradas}", (20, 50), 2, 1, (0, 255, 0), 2)
+            cv2.putText(frame, f"SAIDAS: {saidas}", (20, 90), 2, 1, (0, 0, 255), 2)
+            cv2.putText(frame, "Pressione 'R' para Reset ou 'Q' para Sair", (10, frame.shape[0]-10), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+            
+            cv2.imshow('Vision IA - Monitoramento', frame)
 
-            # --- CONTROLES ---
             key = cv2.waitKey(30) & 0xFF
             if key == ord('q'): break
             if key == ord('r'):
                 first_frame = None
-                total_counts = 0
-                print("Resetando...")
+                entradas = saidas = 0
+                print("Sistema Resetado.")
 
     finally:
         cap.release()
         cv2.destroyAllWindows()
-        cv2.waitKey(1)
 
 if __name__ == "__main__":
-    contador_objetos()
+    contador_profissional()
