@@ -64,13 +64,13 @@ def contador_profissional():
                 if posicao_anterior < linha_y and movimento_atual_y >= linha_y:
                     entradas += 1
                     salvar_log("ENTRADA")
-                    print(f"📥 Entrada detectada! Total: {entradas}")
+                    print(f"Entrada detectada! Total: {entradas}")
 
                 # Caso 2: Cruzou de Baixo para Cima (SAÍDA)
                 elif posicao_anterior > linha_y and movimento_atual_y <= linha_y:
                     saidas += 1
                     salvar_log("SAIDA")
-                    print(f"📤 Saída detectada! Total: {saidas}")
+                    print(f"Saída detectada! Total: {saidas}")
 
             posicao_anterior = movimento_atual_y
 
