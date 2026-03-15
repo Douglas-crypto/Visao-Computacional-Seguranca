@@ -6,6 +6,12 @@ import os
 import time
 import threading
 from flask import Flask, jsonify, render_template_string
+import webbrowser
+import socket
+import subprocess
+
+# CORREÇÃO PARA LINUX/WAYLAND
+os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 # --- CONFIGURAÇÃO DE PASTAS ---
 if not os.path.exists('logs'): os.makedirs('logs')
@@ -62,7 +68,76 @@ def index():
 
 def rodar_servidor():
     # Roda na porta 5000. host='0.0.0.0' permite acesso via celular na mesma rede
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    print("[SERVIDOR] Flask iniciando na porta 5000...")
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False, threaded=True)
+
+# --- FUNÇÃO PARA VERIFICAR SE O SERVIDOR ESTÁ PRONTO ---
+def servidor_pronto(porta=5000, timeout=20):
+    """Verifica se o servidor está respondendo na porta especificada"""
+    print(f"[SERVIDOR] Verificando se servidor está pronto...")
+    inicio = time.time()
+    while time.time() - inicio < timeout:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            resultado = sock.connect_ex(('127.0.0.1', porta))
+            sock.close()
+            if resultado == 0:
+                print(f"[SERVIDOR] ✓ Servidor respondendo!")
+                return True
+        except Exception:
+            pass
+        time.sleep(0.3)
+    print(f"[SERVIDOR] ⚠ Timeout - servidor não respondeu após {timeout}s")
+    return False
+
+# --- FUNÇÃO PARA ABRIR O NAVEGADOR ---
+def abrir_navegador_automatico():
+    """Tenta abrir o navegador com múltiplos métodos"""
+    url = "http://localhost:5000"
+    
+    # Aguarda o servidor estar pronto
+    if not servidor_pronto(5000, timeout=20):
+        print("[NAVEGADOR] ⚠ Servidor não respondeu, tentando mesmo assim...")
+    
+    print(f"[NAVEGADOR] Tentando abrir {url}")
+    
+    # Lista de navegadores para tentar (em ordem de preferência)
+    navegadores = [
+        ("Firefox", "firefox"),
+        ("Google Chrome", "google-chrome"),
+        ("Chromium", "chromium"),
+        ("Chromium-browser", "chromium-browser"),
+        ("xdg-open", "xdg-open"),
+    ]
+    
+    # Tenta primeiro com webbrowser padrão do Python
+    try:
+        print("[NAVEGADOR] Tentando webbrowser.open()...")
+        if webbrowser.open(url):
+            print("[NAVEGADOR] ✓ Aberto com webbrowser.open()")
+            return True
+    except Exception as e:
+        print(f"[NAVEGADOR] ✗ webbrowser.open() falhou: {e}")
+    
+    # Tenta com navegadores específicos
+    for nome, comando in navegadores:
+        try:
+            print(f"[NAVEGADOR] Tentando {nome}...")
+            resultado = os.system(f"which {comando} > /dev/null 2>&1 && {comando} '{url}' > /dev/null 2>&1 &")
+            if resultado == 0:
+                print(f"[NAVEGADOR] ✓ Aberto com {nome}")
+                return True
+        except Exception as e:
+            print(f"[NAVEGADOR] ✗ {nome} falhou: {e}")
+    
+    print(f"\n[{'='*60}]")
+    print(f"[AVISO] Não consegui abrir o navegador automaticamente!")
+    print(f"[{'='*60}]")
+    print(f"[URL Local]  http://localhost:5000")
+    print(f"[URL Rede]   http://<seu-ip>:5000")
+    print(f"[{'='*60}]\n")
+    return False
 
 # --- CLASSES E FUNÇÕES DO SISTEMA DE VISÃO ---
 class Rastreador:
@@ -125,9 +200,6 @@ def sistema_principal():
     limite_maximo = 5
     ids_contados = set()
 
-    # Inicia o servidor Web em uma thread separada
-    threading.Thread(target=rodar_servidor, daemon=True).start()
-
     while True:
         ret, frame = cap.read()
         if not ret: break
@@ -179,5 +251,35 @@ def sistema_principal():
     cap.release()
     cv2.destroyAllWindows()
 
+# --- EXECUÇÃO DO PROGRAMA ---
 if __name__ == "__main__":
-    sistema_principal()
+    print("\n" + "="*70)
+    print("  🎯 INICIANDO VISION IA - SISTEMA DE MONITORAMENTO")
+    print("="*70 + "\n")
+    
+    try:
+        # [PASSO 1] Inicia o servidor Flask em uma thread daemon
+        print("[1/3] Iniciando servidor web (Flask)...")
+        t_servidor = threading.Thread(target=rodar_servidor, daemon=True)
+        t_servidor.start()
+        time.sleep(2)  # Pequeno delay para o Flask iniciar
+        
+        # [PASSO 2] Abre o navegador
+        print("[2/3] Abrindo dashboard no navegador...")
+        abrir_navegador_automatico()
+        
+        # [PASSO 3] Inicia o sistema principal (Câmera + Processamento)
+        print("[3/3] Iniciando sistema de visão (câmera)...")
+        print("   Pressione 'q' durante a captura para sair\n")
+        sistema_principal()
+        
+    except KeyboardInterrupt:
+        print("\n\n[!] Sistema interrompido pelo usuário (Ctrl+C)")
+    except Exception as e:
+        print(f"\n\n[ERRO] {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        print("[!] Encerrando VisionIA...")
+        cv2.destroyAllWindows()
+        print("[OK] Encerrado!")
