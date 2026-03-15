@@ -254,7 +254,7 @@ def sistema_principal():
 # --- EXECUÇÃO DO PROGRAMA ---
 if __name__ == "__main__":
     print("\n" + "="*70)
-    print("  🎯 INICIANDO VISION IA - SISTEMA DE MONITORAMENTO")
+    print("INICIANDO VISION IA - SISTEMA DE MONITORAMENTO")
     print("="*70 + "\n")
     
     try:
