@@ -88,7 +88,7 @@ def servidor_pronto(porta=5000, timeout=20):
         except Exception:
             pass
         time.sleep(0.3)
-    print(f"[SERVIDOR] ⚠ Timeout - servidor não respondeu após {timeout}s")
+    print(f"[SERVIDOR]  Timeout - servidor não respondeu após {timeout}s")
     return False
 
 # --- FUNÇÃO PARA ABRIR O NAVEGADOR ---
@@ -98,7 +98,7 @@ def abrir_navegador_automatico():
     
     # Aguarda o servidor estar pronto
     if not servidor_pronto(5000, timeout=20):
-        print("[NAVEGADOR] ⚠ Servidor não respondeu, tentando mesmo assim...")
+        print("[NAVEGADOR]  Servidor não respondeu, tentando mesmo assim...")
     
     print(f"[NAVEGADOR] Tentando abrir {url}")
     
